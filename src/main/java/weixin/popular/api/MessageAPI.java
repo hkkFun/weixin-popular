@@ -1,6 +1,7 @@
 package weixin.popular.api;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,7 @@ public class MessageAPI extends BaseAPI {
         String str = JsonUtil.toJSONString(message);
         return messageCustomSend(access_token, str);
     }
-    
+
     /**
      * 客服输入状态
      * @since 2.8.26
@@ -448,6 +449,24 @@ public class MessageAPI extends BaseAPI {
                 .addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
                 .build();
         return LocalHttpClient.executeJsonResult(httpUriRequest, CurrentAutoreplyInfo.class);
+    }
+
+    /**
+     * 订阅消息发送（微信小程序）
+     * @param access_token    access_token
+     * @param templateMessage templateMessage
+     * @return result
+     * @since 2.8.30
+     */
+    public static BaseResult messageSubscribeSend(String access_token, WxopenTemplateMessage templateMessage) {
+        String messageJson = JsonUtil.toJSONString(templateMessage);
+        HttpUriRequest httpUriRequest = RequestBuilder.post()
+                .setHeader(jsonHeader)
+                .setUri(BASE_URI + "/cgi-bin/message/subscribe/send")
+                .addParameter(PARAM_ACCESS_TOKEN, API.accessToken(access_token))
+                .setEntity(new StringEntity(messageJson, StandardCharsets.UTF_8))
+                .build();
+        return LocalHttpClient.executeJsonResult(httpUriRequest, BaseResult.class);
     }
 
 }

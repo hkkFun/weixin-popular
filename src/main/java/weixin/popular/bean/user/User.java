@@ -46,7 +46,7 @@ public class User extends BaseResult {
 									// ADD_SCENE_PAID 支付后关注
 									// ADD_SCENE_OTHERS 其他
 
-	private Integer qr_scene; // 2.8.20 二维码扫码场景（开发者自定义）
+	private Long qr_scene; // 2.8.20 二维码扫码场景（开发者自定义）
 
 	private String qr_scene_str; // 2.8.20 二维码扫码场景描述（开发者自定义）
 
@@ -186,11 +186,11 @@ public class User extends BaseResult {
 		this.subscribe_scene = subscribe_scene;
 	}
 
-	public Integer getQr_scene() {
+	public Long getQr_scene() {
 		return qr_scene;
 	}
 
-	public void setQr_scene(Integer qr_scene) {
+	public void setQr_scene(Long qr_scene) {
 		this.qr_scene = qr_scene;
 	}
 
