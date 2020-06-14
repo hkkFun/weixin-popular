@@ -191,12 +191,12 @@ public class TicketManager {
             }
             //立即执行一次
             if (initialDelay == 0) {
-                doRun(appid, type, key);
+                doRun(appid, type, key, callBack);
             }
             ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
-                    doRun(appid, type, key);
+                    doRun(appid, type, key, callBack);
                 }
             }, initialDelay == 0 ? delay : initialDelay, delay, TimeUnit.SECONDS);
             futureMap.put(key, scheduledFuture);
