@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import weixin.popular.api.TokenAPI;
 import weixin.popular.bean.token.Token;
+import weixin.popular.callback.ITokenRefreshCallBack;
 
 /**
  * TokenManager token 自动刷新
@@ -22,7 +23,7 @@ import weixin.popular.bean.token.Token;
 public class TokenManager{
 
 	private static final Logger logger = LoggerFactory.getLogger(TokenManager.class);
-	
+
 	private static ScheduledExecutorService scheduledExecutorService;
 
 	private static Map<String,String> tokenMap = new ConcurrentHashMap<String,String>();
@@ -30,9 +31,9 @@ public class TokenManager{
 	private static Map<String,ScheduledFuture<?>> futureMap = new ConcurrentHashMap<String, ScheduledFuture<?>>();
 
 	private static int poolSize = 2;
-	
+
 	private static boolean daemon = Boolean.TRUE;
-	
+
 	private static String firestAppid;
 
 	/**
@@ -59,7 +60,7 @@ public class TokenManager{
 	public static void setPoolSize(int poolSize){
 		TokenManager.poolSize = poolSize;
 	}
-	
+
 	/**
 	 * 设置线程方式
 	 * @param daemon daemon
@@ -67,7 +68,7 @@ public class TokenManager{
 	public static void setDaemon(boolean daemon) {
 		TokenManager.daemon = daemon;
 	}
-	
+
 	/**
 	 * 初始化token 刷新，每118分钟刷新一次。
 	 * @param appid appid
@@ -75,6 +76,16 @@ public class TokenManager{
 	 */
 	public static void init(final String appid,final String secret){
 		init(appid, secret, 0, 60*118);
+	}
+
+	/**
+	 * 初始化token 刷新，每118分钟刷新一次。
+	 * @param appid appid
+	 * @param secret secret
+	 * @param callBack callBack
+	 */
+	public static void init(final String appid, final String secret, final ITokenRefreshCallBack callBack){
+		init(appid, secret, 0, 60*118, callBack);
 	}
 
 	/**
@@ -107,11 +118,55 @@ public class TokenManager{
 		futureMap.put(appid, scheduledFuture);
 		logger.info("appid:{}",appid);
 	}
-	
+
+	/**
+	 * 初始化token 刷新，每118分钟刷新一次。
+	 * @param appid appid
+	 * @param secret secret
+	 * @param initialDelay 首次执行延迟（秒）
+	 * @param delay 执行间隔（秒）
+	 * @param callBack callBack
+	 */
+	public static void init(final String appid,final String secret,int initialDelay,int delay, final ITokenRefreshCallBack callBack){
+		if(scheduledExecutorService == null){
+			initScheduledExecutorService();
+		}
+		if(firestAppid == null){
+			firestAppid = appid;
+		}
+		if(futureMap.containsKey(appid)){
+			futureMap.get(appid).cancel(true);
+		}
+		//立即执行一次
+		if(initialDelay == 0){
+			doRun(appid, secret, callBack);
+		}
+		ScheduledFuture<?> scheduledFuture =  scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
+			@Override
+			public void run() {
+				doRun(appid, secret, callBack);
+			}
+		},initialDelay == 0 ? delay : initialDelay,delay,TimeUnit.SECONDS);
+		futureMap.put(appid, scheduledFuture);
+		logger.info("appid:{}",appid);
+	}
+
 	private static void doRun(final String appid, final String secret) {
 		try {
 			Token token = TokenAPI.token(appid,secret);
 			tokenMap.put(appid,token.getAccess_token());
+			logger.info("ACCESS_TOKEN refurbish with appid:{}",appid);
+		} catch (Exception e) {
+			logger.error("ACCESS_TOKEN refurbish error with appid:{}",appid);
+			logger.error("", e);
+		}
+	}
+
+	private static void doRun(final String appid, final String secret, final ITokenRefreshCallBack callBack) {
+		try {
+			Token token = TokenAPI.token(appid,secret);
+			tokenMap.put(appid,token.getAccess_token());
+			callBack.refreshSuccessCallBack(appid, token.getAccess_token());
 			logger.info("ACCESS_TOKEN refurbish with appid:{}",appid);
 		} catch (Exception e) {
 			logger.error("ACCESS_TOKEN refurbish error with appid:{}",appid);
@@ -126,7 +181,7 @@ public class TokenManager{
 		scheduledExecutorService.shutdownNow();
 		logger.info("destroyed");
 	}
-	
+
 	/**
 	 * 取消刷新
 	 * @param appid appid
